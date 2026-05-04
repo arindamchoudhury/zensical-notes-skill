@@ -63,7 +63,11 @@ Use when the user is studying the **same topic from multiple books** and wants b
 │   │   └── …
 │   ├── books/
 │   │   ├── ferrari/
-│   │   │   ├── index.md   # per-book reading log
+│   │   │   ├── index.md      # per-book reading log
+│   │   │   ├── page-map.md   # PDF page ranges (one-time extraction, reused every session)
+│   │   │   ├── pdf-cache/    # raw extracted chapter text (reused across sessions)
+│   │   │   │   ├── 01-<slug>.txt
+│   │   │   │   └── …
 │   │   │   └── chapters/01-…md
 │   │   └── rogov/
 │   │       ├── index.md
@@ -155,6 +159,25 @@ PDF-to-print offset: +33  (PDF page 34 = printed page 1)
 In subsequent sessions: read `page-map.md`, look up the target chapter's PDF start/end, extract with `pdftotext -f <start> -l <end> -layout "<book>.pdf" -`.
 
 > **Don't extract all chapter text upfront.** The full PDF text is far too large for context. Extract one chapter at a time, immediately before writing its notes. The page map is cheap (a small table); bulk pre-extraction is wasteful and unnecessary.
+
+### Chapter text cache — extract once, read many times
+
+Once a chapter's text is extracted, save it so it never needs re-extracting in a future session.
+
+**Before extracting,** check whether `docs/books/<slug>/pdf-cache/<NN>-<slug>.txt` already exists. If it does, read it directly — skip `pdftotext` entirely.
+
+**If the cache file is missing,** extract and save in one step:
+
+```bash
+pdftotext -f <start> -l <end> -layout "<book>.pdf" \
+  "docs/books/<slug>/pdf-cache/<NN>-<slug>.txt"
+```
+
+Then read from the saved file.
+
+**Naming:** use the same `<NN>-<slug>` stem as the chapter `.md` file — `01-introduction.txt`, `05-advanced-statements.txt`. The pairing is then obvious at a glance.
+
+> 💡 The cache contains raw book text. Consider adding `docs/books/*/pdf-cache/` to `.gitignore` if you don't want to commit extracted text to version control.
 
 ## Version-aware notes (the key trick)
 
@@ -256,7 +279,7 @@ A good run looks like:
 2. Inspect the destination folder. If it's empty, scaffold the project (`zensical.toml`, `docs/index.md`, `docs/chapters/`, `docs/reference/`).
 3. **Build the chapter page map** — extract chapter boundaries in one pass and save to `docs/books/<slug>/page-map.md` (see "Chapter page map" in "Working with the PDF"). This is a one-time cost per book; future sessions read the file directly.
 4. Create placeholder chapter files for chapters 2..N so the navigation works from day one.
-5. Read the page map to look up chapter 1's PDF start/end, then extract its text: `pdftotext -f <start> -l <end> -layout "<book>.pdf" -`.
+5. **Check the chapter text cache** — look for `docs/books/<slug>/pdf-cache/01-<slug>.txt`. If absent, extract and save: `pdftotext -f <start> -l <end> -layout "<book>.pdf" docs/books/<slug>/pdf-cache/01-<slug>.txt`. Then read from the file.
 6. Detect version-bound content. Web-search for any current versions discussed.
 7. Write the chapter outline using the style in `references/note-style.md`. Insert the version-adaptation note callout if any updates were made.
 8. Update `zensical.toml` nav (if needed), reading log, `docs/reference/glossary.md` (new terms), `docs/reference/resources.md` (links).
@@ -266,6 +289,7 @@ If the project is already in multi-book mode, step 2 is "read `references/multi-
 
 ## Anti-patterns to avoid
 
+- **Don't re-run pdftotext if the cache exists.** Check `docs/books/<slug>/pdf-cache/<NN>-<slug>.txt` before extracting. A cache hit skips the extraction entirely and keeps the context window smaller.
 - **Don't dump raw extracted text.** It's not notes; it's a copy. Re-state ideas in your own words.
 - **Don't write a flat summary** of long chapters — keep the structure visible.
 - **Don't rewrite chapters from scratch** when the book is just slightly out of date. Adapt the version-bound bits, leave concepts alone.
