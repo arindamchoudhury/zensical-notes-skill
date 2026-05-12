@@ -53,6 +53,30 @@ Inside each section, the rhythm is:
 
 Avoid marathon bullets. If a thought is more than ~2 sentences, break it into sub-bullets or a short paragraph. Avoid bullet-of-bullets-of-bullets nesting deeper than three levels — at that point you're hiding structure rather than revealing it.
 
+**CommonMark list formatting rule:** A bullet list that immediately follows a paragraph with no blank line between them will be rendered as continuation text (one long line) by CommonMark-based renderers including Zensical/MkDocs. Always put a blank line before a bullet list:
+
+```markdown
+`pos` is useful when:
+- order matters     ← WRONG — collapses to inline text
+
+`pos` is useful when:
+
+- order matters     ← correct
+```
+
+This applies everywhere: after plain paragraphs, after bold lead-ins (`**X is useful when:**`), after code blocks. When in doubt, add the blank line.
+
+**Diagnosing this problem from user reports:** When a user pastes text that looks like a collapsed run-on — bullets smashed onto one line with no line breaks — it is almost always this missing-blank-line issue rendered by the browser. The pasted text looks like:
+
+```
+pos is useful when: - Order matters — e.g. the first skill is the primary one,
+the rest are secondary - Re-joining back — you need to re-assemble or compare
+elements by their original position - Debugging — confirming array contents
+line up with expectations
+```
+
+**Fix:** grep the file for the lead-in phrase (`pos is useful when`), read a few lines around it, confirm there is no blank line between the lead-in and the first `-` bullet, then add the blank line. No other change needed.
+
 ## Code, callouts, sidebars
 
 **Commands and SQL** — render as fenced code blocks with the language tag. Keep them short and self-contained. If the book shows a 30-line example, capture only the lines that demonstrate the concept being taught and add a brief note pointing at the book's full example by page number.

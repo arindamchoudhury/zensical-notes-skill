@@ -1,26 +1,42 @@
 # Scaffolding a fresh Zensical notes site
 
-When the destination folder is empty (or has only a `.git`/`README.md`), use these templates to bootstrap. They produce a working site that runs immediately with `zensical serve` (or `docker compose up`) and follows the conventions the rest of this skill assumes.
+The **multi-book hybrid layout is the default**. Use these templates to bootstrap any new project. They produce a working site that runs immediately with `zensical serve` (or `docker compose up`) and follows the conventions the rest of this skill assumes.
 
 Replace anything in `<angle-brackets>` with the real value before writing the file.
 
-## `zensical.toml`
+---
+
+## Multi-book layout (default)
+
+### `zensical.toml`
 
 ```toml
 [project]
-site_name = "<Book Title> — Reading Notes"
-site_description = "Detailed reading notes on <Book Title> by <Authors> (<Publisher>, <Year>)."
+site_name = "<Topic> — Reading Notes"
+site_description = "Personal study notes on <topic>, drawing on multiple books."
 site_author = "<User name or handle>"
-copyright = "Copyright © <Year> <User>. Notes summarize concepts from <Book Title> by <Authors> (<Publisher>, <Year>)."
+copyright = "Copyright © <Year> <User>. Notes are personal study summaries."
 
-# Hierarchical navigation. Each entry maps a display title to either a markdown
-# file (relative to docs/) or a nested array for sub-sections.
 nav = [
     { "Home" = "index.md" },
-    { "Chapters" = [
-        { "1. <Chapter 1 title>" = "chapters/01-<slug>.md" },
-        { "2. <Chapter 2 title>" = "chapters/02-<slug>.md" },
-        # … one per chapter
+    { "Topics" = [
+        { "Topic index" = "topics/index.md" },
+        # Active topic pages get added here as they're written, e.g.:
+        # { "Architecture" = "topics/architecture.md" },
+        # { "MVCC" = "topics/mvcc.md" },
+    ]},
+    { "Books" = [
+        { "<Author> (<Year>)" = [
+            { "Reading log" = "books/<slug>/index.md" },
+            { "1. <Chapter 1 title>" = "books/<slug>/chapters/01-<slug>.md" },
+            { "2. <Chapter 2 title>" = "books/<slug>/chapters/02-<slug>.md" },
+            # … one per chapter
+        ]},
+        # Second book added here when the time comes:
+        # { "<Author2> (<Year>)" = [
+        #     { "Reading log" = "books/<slug2>/index.md" },
+        #     …
+        # ]},
     ]},
     { "Reference" = [
         { "Glossary"  = "reference/glossary.md" },
@@ -38,52 +54,91 @@ nav = [
 #   language = "en"
 ```
 
-For *very long* books, consider grouping chapters into "Parts" using nested arrays — but only if the book itself is structured that way. Don't manufacture parts that aren't in the source.
+For books with many chapters, group them into parts using nested arrays — but only if the book itself is structured that way:
 
 ```toml
-{ "Part I — Getting Started" = [
-    { "1. <…>" = "chapters/01-<slug>.md" },
-    { "2. <…>" = "chapters/02-<slug>.md" },
+{ "<Author> (<Year>)" = [
+    { "Reading log" = "books/<slug>/index.md" },
+    { "Part I — Getting Started" = [
+        { "1. <…>" = "books/<slug>/chapters/01-<slug>.md" },
+        { "2. <…>" = "books/<slug>/chapters/02-<slug>.md" },
+    ]},
+    { "Part II — Advanced" = [
+        { "3. <…>" = "books/<slug>/chapters/03-<slug>.md" },
+    ]},
 ]},
 ```
 
-## `docs/index.md`
+### `docs/index.md` (hub page)
 
 ```markdown
-# <Book Title> — Reading Notes
+# <Topic> — Reading Notes
 
-Detailed reading notes for **<Book Title>** by <Authors> (<Publisher>, <Year>). Written as a **detailed outline** — each chapter captures the structure, key concepts, and the specific commands or syntax worth remembering.
+A growing personal study site for **<topic>**, drawing on multiple books.
 
-## How these notes are organized
+## Topics
 
-<1–2 sentences describing how the chapters group, if relevant. Otherwise drop this section.>
+Cross-book synthesis — each page distills how multiple books treat the same topic.
 
-## Reading log
+- [Topic index](topics/index.md)
 
-| Status | Chapter |
-| ------ | ------- |
-| ⬜ todo   | 1. <Chapter 1 title> |
-| ⬜ todo   | 2. <Chapter 2 title> |
-| ⬜ todo   | 3. <Chapter 3 title> |
-| …      | … |
+_(Topic pages appear here once ≥2 books cover the same ground.)_
+
+## Books
+
+- [<Author(s)> — *<Book title>* (<Year>)](books/<slug>/index.md)
+
+## Reference
+
+- [Glossary](reference/glossary.md)
+- [Resources](reference/resources.md)
+```
+
+### `docs/topics/index.md`
+
+```markdown
+# Topics
+
+Cross-book synthesis — each page distills how multiple books treat the same topic.
+
+## Active topic pages
+
+_(None yet — topic pages are written once ≥2 books cover the same ground.)_
+
+## Single-source backlog (waiting for a second book)
+
+- **<Topic>** — <Author> Ch <N> only. *(Add a second source to write this page.)*
+```
+
+The "single-source backlog" is updated after every chapter. When a second book covers a backlogged topic, promote it to an active topic page.
+
+### `docs/books/<slug>/index.md` (per-book reading log)
+
+```markdown
+# <Book Title> — Reading Log
+
+> <Authors> (<Year>). *<Full title with subtitle>* (<edition>). <Publisher>. ISBN <…>.
+
+| Status | Chapter | Topic page(s) |
+| ------ | ------- | ------------- |
+| ⬜ todo | 1. <Chapter 1 title> | — |
+| ⬜ todo | 2. <Chapter 2 title> | — |
+| ⬜ todo | 3. <Chapter 3 title> | — |
+| … | … | … |
 
 ## Conventions
 
 - **Concepts** are introduced as short, declarative bullets.
 - **Commands / syntax** appear in fenced code blocks.
-- **Open questions / things to revisit** are marked with `> ❓`.
-- **Version-adapted content** is flagged with a 📌 callout at the top of the chapter.
-
-## About the source book
-
-> <Authors> (<Year>). *<Full title with subtitle>* (<edition>). <Publisher>. ISBN <…>.
+- **Open questions** are marked with `> ❓`.
+- **Version-adapted content** is flagged with a 📌 callout at the top of each chapter.
 ```
 
-The reading-log table is the single most useful affordance on the home page. As chapters get done, flip `⬜ todo` to `✅ done`. Don't remove rows; you want the full chapter list visible.
+Flip `⬜ todo` to `✅ done` and fill in the "Topic page(s)" column as chapters are completed.
 
-## `docs/chapters/<NN>-<slug>.md` (placeholder)
+### `docs/books/<slug>/chapters/<NN>-<slug>.md` (placeholder)
 
-For every chapter the user *hasn't* studied yet, create a placeholder. This keeps the navigation working and gives the reading log somewhere to point.
+For every chapter not yet studied, create a placeholder so navigation works from day one:
 
 ```markdown
 # Chapter <N> — <Chapter Title>
@@ -104,30 +159,30 @@ For every chapter the user *hasn't* studied yet, create a placeholder. This keep
 _(to be added)_
 ```
 
-## `docs/reference/glossary.md`
+### `docs/reference/glossary.md`
 
-Start empty (or seeded if you have one chapter done). Add a section per chapter as terms are introduced.
+In multi-book mode, every term carries a source attribution. Once the glossary grows past ~30 entries, group by initial letter (`## A`, `## B`, …).
 
 ```markdown
 # Glossary
 
-A running glossary of terms as they appear across the book. Updated chapter by chapter.
+A running glossary of terms across all books. Each entry is attributed to its source.
 
-## From Chapter 1
+## From <Author> (<Year>)
 
-| Term | Meaning |
-| --- | --- |
-| <Term> | <Short, standalone definition.> |
+| Term | Meaning | Source |
+| --- | --- | --- |
+| <Term> | <Short, standalone definition.> | <Author> Ch <N> |
 ```
 
-Tip: keep definitions standalone — i.e. someone reading just the glossary entry should understand the concept without having to flip to the chapter. That's what makes a glossary useful.
+When two books define a term differently, keep both rows and attribute each — different definitions usually reflect different lenses on the same idea.
 
-## `docs/reference/resources.md`
+### `docs/reference/resources.md`
 
 ```markdown
 # Resources
 
-Links collected from the book — a single place to find them later.
+Links collected from all books — a single place to find them later.
 
 ## Official <Topic> docs
 
@@ -137,18 +192,19 @@ Links collected from the book — a single place to find them later.
 
 - <Tool name> — <https://…>
 
-## The book
+## Books
 
-- Source code — <https://…>
-- Errata / updates — <https://…>
+- <Author> (<Year>): source code — <https://…>
 ```
+
+---
 
 ## `README.md` (project root)
 
 ```markdown
-# <Book Title> — Reading Notes
+# <Topic> — Reading Notes
 
-A [Zensical](https://zensical.org/) static site built from reading notes on *<Book Title>* by <Authors> (<Publisher>, <Year>).
+A [Zensical](https://zensical.org/) static site built from personal study notes on <topic>.
 
 ## Run with Docker (recommended)
 
@@ -170,10 +226,13 @@ zensical serve
 
 ## Adding a new chapter's notes
 
-1. Edit the file under `docs/chapters/`.
-2. The navigation is already wired up in `zensical.toml`.
-3. Update the reading-log table in `docs/index.md`.
+1. Edit `docs/books/<slug>/chapters/<NN>-<slug>.md`.
+2. Nav is already wired in `zensical.toml`.
+3. Flip the row to ✅ in `docs/books/<slug>/index.md`.
+4. Update `docs/topics/index.md` backlog with any topics the chapter touches.
 ```
+
+---
 
 ## `Dockerfile`
 
@@ -240,8 +299,55 @@ __pycache__/
 Thumbs.db
 ```
 
+---
+
 ## After scaffolding
 
-Tell the user the site is ready and how to run it. Then proceed straight into Chapter 1 (or whichever chapter they asked for) using `note-style.md` as the guide.
+Tell the user the site is ready and how to run it. Then proceed straight into whichever chapter they asked for using `note-style.md` as the guide. Remind them that topic pages live in the backlog until a second book covers the same ground.
 
-Don't create more than one project per book by default. If they're studying a second book, ask whether they want a sibling folder (e.g., `~/Notes/postgres/`, `~/Notes/kubernetes/`) or a single bigger site that hosts both — both are reasonable but have different navigation implications.
+---
+
+## Single-book layout (legacy / explicitly requested only)
+
+Use this *only* when the user explicitly asks for the simpler layout or is maintaining an existing single-book project they don't want to migrate.
+
+### `zensical.toml` (single-book)
+
+```toml
+[project]
+site_name = "<Book Title> — Reading Notes"
+site_description = "Detailed reading notes on <Book Title> by <Authors> (<Publisher>, <Year>)."
+site_author = "<User name or handle>"
+copyright = "Copyright © <Year> <User>. Notes summarize concepts from <Book Title> by <Authors> (<Publisher>, <Year>)."
+
+nav = [
+    { "Home" = "index.md" },
+    { "Chapters" = [
+        { "1. <Chapter 1 title>" = "chapters/01-<slug>.md" },
+        { "2. <Chapter 2 title>" = "chapters/02-<slug>.md" },
+    ]},
+    { "Reference" = [
+        { "Glossary"  = "reference/glossary.md" },
+        { "Resources" = "reference/resources.md" },
+    ]},
+]
+```
+
+### `docs/index.md` (single-book)
+
+```markdown
+# <Book Title> — Reading Notes
+
+Detailed reading notes for **<Book Title>** by <Authors> (<Publisher>, <Year>).
+
+## Reading log
+
+| Status | Chapter |
+| ------ | ------- |
+| ⬜ todo | 1. <Chapter 1 title> |
+| ⬜ todo | 2. <Chapter 2 title> |
+
+## About the source book
+
+> <Authors> (<Year>). *<Full title with subtitle>* (<edition>). <Publisher>. ISBN <…>.
+```

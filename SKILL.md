@@ -1,6 +1,6 @@
 ---
 name: zensical-notes
-description: Build and extend a Zensical "reading notes" site from PDF books, papers, or technical manuals — including multi-book setups studying one topic across several sources. Trigger whenever the user wants to take notes on a PDF, study chapter-by-chapter, summarize a book into durable docs, extend an existing notes site, add a second book to an existing site, or compare what multiple books say about a topic. Catches phrases like "take notes on this PDF", "let's do chapter X", "summarize this chapter", "I'm studying [topic]", "add this book to my notes", "compare these books on X", and any time a user uploads a PDF and asks for note-taking help — even without naming Zensical. Produces detailed-outline Markdown, scaffolds single- or multi-book projects (per-book chapters plus cross-book topic pages), keeps nav/reading-log/glossary/topic-pages in sync, and refreshes version-specific content to the latest release at note-taking time.
+description: Build and extend a Zensical "reading notes" site from PDF books, papers, or technical manuals — including multi-book setups studying one topic across several sources. Trigger whenever the user wants to take notes on a PDF, study chapter-by-chapter, summarize a book into durable docs, extend an existing notes site, add a second book to an existing site, or compare what multiple books say about a topic. Catches phrases like "take notes on this PDF", "let's do chapter X", "summarize this chapter", "I'm studying [topic]", "add this book to my notes", "compare these books on X", and any time a user uploads a PDF and asks for note-taking help — even without naming Zensical. Produces detailed-outline Markdown, scaffolds multi-book projects by default (per-book chapters plus cross-book topic pages), keeps nav/reading-log/glossary/topic-pages in sync, and refreshes version-specific content to the latest release at note-taking time.
 ---
 
 # Zensical Notes
@@ -21,45 +21,20 @@ This skill is not for: short Q&A on a PDF, extracting a single quote, translatin
 
 ## Project layout
 
-There are two supported layouts. Detect which one applies before doing significant work — `ls` of the notes root usually answers it.
+The **multi-book hybrid layout is the default**. Use it for every fresh project and every existing single-book project. Detect which state you're in before doing significant work — `ls` of the notes root answers it.
 
-### Single-book layout (default)
+### Multi-book hybrid layout (default)
 
-Use when one site = one book.
-
-```
-<notes-root>/
-├── zensical.toml         # site name, theme, hierarchical nav
-├── docs/
-│   ├── index.md          # landing page + reading log table
-│   ├── chapters/
-│   │   ├── 01-<slug>.md  # one file per chapter (the meat of the notes)
-│   │   ├── 02-<slug>.md
-│   │   └── …
-│   └── reference/
-│       ├── glossary.md   # running glossary of terms across chapters
-│       └── resources.md  # links collected from the book
-├── Dockerfile            # optional — `zensical serve` in a container
-├── docker-compose.yml    # optional — bind-mounts docs/ for live reload
-└── README.md             # how to run the site
-```
-
-**Why this layout works:** chapter notes live under one predictable folder so the navigation in `zensical.toml` is easy to maintain; cross-chapter knowledge (terminology, links) lives separately under `reference/` so it doesn't get buried inside any one chapter; the site config is a single TOML file.
-
-See `references/scaffold.md` for the full templates to use when scaffolding a fresh single-book site.
-
-### Multi-book hybrid layout (per-book + topic pages)
-
-Use when the user is studying the **same topic from multiple books** and wants both per-book chapter notes (faithful to each author's narrative) *and* cross-book topic pages (synthesized perspective).
+This is the standard layout even when starting with a single book. Per-book chapter notes live under `docs/books/<slug>/`; cross-book topic pages live under `docs/topics/`. Topic pages are written as backlog entries when only one book exists and promoted to full pages once a second book overlaps.
 
 ```
 <notes-root>/
 ├── zensical.toml
 ├── docs/
-│   ├── index.md           # hub linking to both Topics and Books
+│   ├── index.md              # hub linking Topics + Books + Reference
 │   ├── topics/
-│   │   ├── index.md       # topic list + "topics to write" backlog
-│   │   ├── mvcc.md        # ← Ferrari Ch 11 + Rogov Ch 4
+│   │   ├── index.md          # topic list + "topics to write" backlog
+│   │   ├── mvcc.md           # ← Ferrari Ch 11 + Rogov Ch 4 (once ≥2 books)
 │   │   └── …
 │   ├── books/
 │   │   ├── ferrari/
@@ -68,33 +43,78 @@ Use when the user is studying the **same topic from multiple books** and wants b
 │   │   │   ├── pdf-cache/    # raw extracted chapter text (reused across sessions)
 │   │   │   │   ├── 01-<slug>.txt
 │   │   │   │   └── …
-│   │   │   └── chapters/01-…md
-│   │   └── rogov/
+│   │   │   └── chapters/
+│   │   │       ├── 01-<slug>.md
+│   │   │       └── …
+│   │   └── <next-book>/
 │   │       ├── index.md
-│   │       └── chapters/04-mvcc.md
+│   │       └── chapters/…
 │   └── reference/
-│       ├── glossary.md    # merged across books, attributed
+│       ├── glossary.md       # merged across books, with source attribution
+│       └── resources.md
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
+```
+
+**Detection:**
+- `docs/books/` with at least one sub-folder → multi-book mode. Read `references/multi-book.md` and follow its workflow.
+- `docs/chapters/` present, no `docs/books/` → **legacy single-book project**. Migrate to multi-book before adding any new chapter or book (see "Migration" below).
+- Nothing present → scaffold multi-book from scratch using `references/scaffold.md`.
+
+**Why default to multi-book even for one book?** The structure is ready for a second book the moment you start it, without a disruptive migration. Topic pages sit in the backlog — not wasted space, a useful reminder of what's waiting for a second source. Navigation is consistent regardless of how many books you eventually add.
+
+**Read `references/multi-book.md`** at the start of every session involving a multi-book project. It has the full workflow, topic-page template, cross-linking convention, glossary format, and migration steps.
+See `references/scaffold.md` for the drop-in templates to use when bootstrapping a fresh project.
+
+### Single-book layout (legacy / explicitly requested)
+
+Use this *only* when the user explicitly asks for the simpler layout or is working with an existing single-book project that they don't want to migrate.
+
+```
+<notes-root>/
+├── zensical.toml
+├── docs/
+│   ├── index.md          # landing page + reading log table
+│   ├── chapters/
+│   │   ├── 01-<slug>.md
+│   │   └── …
+│   └── reference/
+│       ├── glossary.md
 │       └── resources.md
 └── …
 ```
 
-**Detection:** if `docs/books/` exists with at least one sub-folder, you're in multi-book mode — read `references/multi-book.md` immediately and follow its workflow rather than trying to scaffold a single-book site on top.
+**Migration to multi-book:** whenever a single-book project needs a second book, or when the user asks for topic pages, migrate first. Steps:
 
-**Trigger to migrate single → multi:** when a single-book project exists and the user asks to add a *second* book. See the migration section of `references/multi-book.md` — do the migration *before* starting on the new book, and verify the site still builds.
+1. Move `docs/chapters/` → `docs/books/<existing-slug>/chapters/`.
+2. Create `docs/books/<existing-slug>/index.md` (reading log moves here from `docs/index.md`).
+3. Create `docs/topics/index.md` with the topic-backlog structure.
+4. Rewrite `docs/index.md` as the multi-book hub.
+5. Restructure `nav` in `zensical.toml` to Topics / Books / Reference.
+6. Add a `Source` column to every glossary table.
+7. Run `zensical serve` and verify no broken links before adding the new book.
 
 ## The flavors of work
 
 Almost every invocation of this skill is one of these:
 
-1. **First time with a book, fresh site** — no notes folder yet. Scaffold a *single-book* project (templates in `references/scaffold.md`), read the PDF TOC, lay out a chapter file per chapter as a placeholder, write detailed notes for the requested chapter, point them at the running site.
+1. **First time with a book, fresh site** — no notes folder yet. Scaffold a *multi-book* project (templates in `references/scaffold.md`). Read the PDF TOC, lay out placeholder chapter files under `docs/books/<slug>/chapters/`, write detailed notes for the requested chapter, add topics to the `docs/topics/index.md` backlog, update the per-book reading log, update glossary and resources.
 
-2. **Adding a chapter to an existing single-book site** — `zensical.toml` and `docs/chapters/` already exist. You're filling in one more chapter file, updating the reading-log row in `docs/index.md`, and possibly adding terms to the glossary / links to resources.
+2. **Adding a chapter to an existing multi-book site** — `docs/books/<slug>/` already exists. Fill in one more chapter file, flip the reading-log row to ✅, add new terms to the glossary (with source attribution), add links to resources. Then do the topic-page pass: identify which topics this chapter touches, decide whether to extend an existing topic page, create one (≥2 books overlap), or add to the backlog. Cross-link bidirectionally.
 
-3. **Adding a *new book* to an existing single-book site** — the user is now studying a second source. **Migrate** the site to the multi-book hybrid layout *before* taking notes on the new book. See the migration section of `references/multi-book.md`.
+3. **Adding a new book to an existing multi-book site** — create `docs/books/<new-slug>/` with its own `index.md` and placeholder chapter files. Wire the new book into `zensical.toml` nav and `docs/index.md`. Then proceed as flavor 2 for each chapter studied.
 
-4. **Adding a chapter inside a multi-book site** — `docs/books/<slug>/` exists. Read `references/multi-book.md` if you haven't this session. Write the per-book chapter notes, then do the topic-page pass: identify which topics the chapter touches, decide whether to extend an existing topic page, create a new one (only when ≥2 books overlap), or add to the topic backlog. Cross-link bidirectionally.
+4. **Legacy: adding a chapter to an existing single-book site** — if `docs/chapters/` is present and the user hasn't asked to migrate, continue in single-book mode: fill in the chapter file, update `docs/index.md` reading log, update glossary and resources. Flag the migration opportunity if a second book comes up.
 
-Always confirm which flavor applies before doing significant work. A quick `ls` of the notes root usually answers it (`docs/books/` present → multi-book; `docs/chapters/` present → single-book; nothing → fresh).
+5. **Chat Q&A → notes addition** — the user asks a conceptual question in the chat ("how does X work?", "what's the difference between X and Y?"), gets an answer in conversation, then says "add that to the notes" or "add a section for X". Workflow:
+   1. Grep the chapter files to find where the related content lives — don't guess, confirm the exact line.
+   2. Identify the right insertion point (after which section/subsection the new content belongs).
+   3. Write the section using the detail from the conversation answer, styled to match the surrounding notes (callouts, code blocks, comparison tables as appropriate).
+   4. If the user adds a follow-up ("what about X in Y context?") and then says "yes" (add it), append it as a callout or sub-section at the logical end of the section just written — don't restructure the whole section.
+   5. No reading-log or glossary update needed unless the addition introduces new terms.
+
+Always confirm which flavor applies before doing significant work. A quick `ls` of the notes root answers it.
 
 ## The detailed-outline note style
 
@@ -134,13 +154,13 @@ pdftotext -f 1 -l 30 -layout "<book>.pdf" -
 
 If PDF page 34 shows "1" as the printed page number, the offset is +33 (PDF page = printed page + 33).
 
-**Step 2 — enumerate chapter start pages.** Pipe the full text through `grep` to spot chapter headings:
+**Step 2 — enumerate chapter start pages.** Grep the full text for chapter headings:
 
 ```bash
 pdftotext -layout "<book>.pdf" - | grep -n "^Chapter " | head -30
 ```
 
-The line numbers correspond to *output text lines*, not PDF pages — use them to triangulate, then confirm by extracting a small range with `-f`/`-l`.
+Confirm each hit with a targeted `pdftotext -f <page> -l <page>` to verify it's actually a chapter heading and not a running header or TOC entry.
 
 **Step 3 — save to `page-map.md`.**
 
@@ -156,9 +176,7 @@ PDF-to-print offset: +33  (PDF page 34 = printed page 1)
 | … | … | … | … | … |
 ```
 
-In subsequent sessions: read `page-map.md`, look up the target chapter's PDF start/end, extract with `pdftotext -f <start> -l <end> -layout "<book>.pdf" -`.
-
-> **Don't extract all chapter text upfront.** The full PDF text is far too large for context. Extract one chapter at a time, immediately before writing its notes. The page map is cheap (a small table); bulk pre-extraction is wasteful and unnecessary.
+In subsequent sessions: read `page-map.md`, look up the chapter's PDF start/end, extract with `pdftotext -f <start> -l <end> -layout "<book>.pdf" -`.
 
 ### Chapter text cache — extract once, read many times
 
@@ -178,6 +196,31 @@ Then read from the saved file.
 **Naming:** use the same `<NN>-<slug>` stem as the chapter `.md` file — `01-introduction.txt`, `05-advanced-statements.txt`. The pairing is then obvious at a glance.
 
 > 💡 The cache contains raw book text. Consider adding `docs/books/*/pdf-cache/` to `.gitignore` if you don't want to commit extracted text to version control.
+
+### Research cache — search once, reuse across sessions
+
+The same principle applies to web searches: after verifying facts (version numbers, API behaviour, style guide guidance), save the results so future sessions skip the search entirely.
+
+**Before web-searching**, check whether `docs/research-cache/<topic>.md` already has a recent answer. If the "Last verified" date looks current for the technology's release cadence, use it directly.
+
+**After web-searching**, save findings to `docs/research-cache/<topic>.md`:
+
+```markdown
+# <Topic> — verified facts
+
+Last verified: **YYYY-MM-DD** against <Technology> vX.Y.
+
+| Claim | Verified value | Notes |
+|---|---|---|
+| `F.mode` added in | 3.4 | `deterministic` param added in 4.0 |
+| ANSI mode on by default | Spark 4.0+ | |
+```
+
+**Naming:** short kebab-case topic name — `spark-api-versions.md`, `postgres-release-history.md`. One file per technology or tightly-related group of facts.
+
+**Staleness:** the "Last verified" date tells future-you whether to trust the cache. A fact that hasn't changed across multiple major releases (e.g. "function X added in version Y") is durable; a fact about "the current stable release" expires whenever a new release ships — re-verify and update the date.
+
+> 💡 `docs/research-cache/` is not wired into `zensical.toml` nav — it's a working file, not a published page. Consider adding it to `.gitignore` or committing it for convenience; either is fine.
 
 ## Version-aware notes (the key trick)
 
@@ -210,55 +253,20 @@ The full decision rules and a worked example (PostgreSQL 16 → 18 adaptation) l
 
 A chapter note isn't done until the other site files are updated:
 
-- **`zensical.toml`** — confirm the chapter is wired into `nav`. For new books this is the whole nav table; for new chapters the slot is usually already there. The file is TOML, not YAML — see `references/scaffold.md` for nested-nav syntax (single-book) and `references/multi-book.md` for the multi-book version.
-- **Reading log** — flip the row from `⬜ todo` → `✅ done`. In single-book mode this lives in `docs/index.md`; in multi-book mode it's in `docs/books/<slug>/index.md`.
-- **`docs/reference/glossary.md`** — append any *new* terms the chapter introduced. Don't rewrite existing entries unless they're now wrong. In multi-book mode, attribute each entry to its source book(s); when two books define a term differently, keep both.
+- **`zensical.toml`** — confirm the chapter is wired into `nav`. The file is TOML, not YAML — see `references/scaffold.md` for nested-nav syntax and `references/multi-book.md` for the multi-book nav structure.
+- **Per-book reading log** (`docs/books/<slug>/index.md`) — flip the row from `⬜ todo` → `✅ done`, and fill in the "Topic page(s)" column with any topic pages this chapter informs.
+- **`docs/reference/glossary.md`** — append any *new* terms the chapter introduced with source attribution. Don't rewrite existing entries unless they're now wrong. When two books define a term differently, keep both and attribute each.
 - **`docs/reference/resources.md`** — append links the chapter cites that look useful long-term (project docs, repos, RFCs). Skip purely internal cross-references.
-- **(multi-book only) Topic pages and topic index** — for each topic the chapter informs, either extend an existing topic page, create a new one (≥2 books overlap), or add to the backlog in `docs/topics/index.md`. Add the bidirectional cross-link between chapter note and topic page. See `references/multi-book.md`.
+- **Topic pages and topic index** — for each topic the chapter informs, either extend an existing topic page, create a new one (≥2 books overlap), or add to the backlog in `docs/topics/index.md`. Add the bidirectional cross-link between chapter note and topic page. See `references/multi-book.md`.
 
 These updates are small, but skipping them is the #1 way the site rots.
 
 ## Naming and slugs
 
-- **Chapter files:** `<NN>-<short-kebab-slug>.md` where `NN` is two-digit (`01`…`19`). Two digits because lexical sort matches numeric order up to 99 chapters. The slug should be 3–5 words from the chapter title.
-- **Book slugs (multi-book mode):** short, kebab-case, ideally one word — `ferrari`, `momjian`, `rogov`. Author surname unless ambiguous.
-- **Topic files (multi-book mode):** short noun phrase, no number — `mvcc.md`, `replication.md`, `query-tuning.md`. Topic order is editorial.
+- **Book slugs:** short, kebab-case, ideally one word — `ferrari`, `momjian`, `rogov`. Author surname unless ambiguous (e.g., two books by same author → `ferrari-2023`, `ferrari-2025`).
+- **Chapter files:** `<NN>-<short-kebab-slug>.md` where `NN` is two-digit (`01`…`99`). Namespaced by book at the path level, so collisions across books are impossible.
+- **Topic files:** short noun phrase, no number — `mvcc.md`, `replication.md`, `query-tuning.md`. Topic order is editorial.
 - **Display titles in `nav`** get the full chapter or topic title, not the slug. The slug is for the filesystem; the title is for humans.
-
-## Hot reload on Docker Desktop for Windows
-
-`zensical serve` uses inotify to detect file changes. Docker Desktop on Windows (WSL2 backend) does **not** propagate inotify events for bind-mounted volumes from the Windows host, so the server never detects edits — even though the files are correctly mounted. Manual browser reload also shows stale content.
-
-**Fix:** replace `zensical serve` with a `serve.py` script that uses the `livereload` Python package, which polls file modification times (no inotify required) and injects a WebSocket snippet so the browser auto-refreshes.
-
-`serve.py` (project root, COPY'd into the container):
-
-```python
-import subprocess
-from livereload import Server
-
-
-def build():
-    subprocess.run(["zensical", "build"], check=True)
-
-
-build()  # initial build on startup
-
-server = Server()
-server.watch("docs/", build)
-server.watch("zensical.toml", build)
-server.serve(root="site", port=8000, host="0.0.0.0")
-```
-
-`Dockerfile` changes — add `livereload` to the pip install line, COPY the script, and update CMD:
-
-```dockerfile
-RUN pip install --no-cache-dir "zensical>=0.0.30,<0.1" livereload
-COPY serve.py /app/serve.py
-CMD ["python", "serve.py"]
-```
-
-After adding these files, rebuild with `docker compose up --build`. The site now auto-refreshes in the browser on every save; no manual reload needed.
 
 ## Theme caveat (Zensical 0.0.x)
 
@@ -275,34 +283,36 @@ The user uploads a 745-page PDF of a Linux kernel internals book and says *"help
 
 A good run looks like:
 
-1. Confirm style/format and book layout if not obvious (one quick clarifying question to the user is fine — don't ask four).
-2. Inspect the destination folder. If it's empty, scaffold the project (`zensical.toml`, `docs/index.md`, `docs/chapters/`, `docs/reference/`).
-3. **Build the chapter page map** — extract chapter boundaries in one pass and save to `docs/books/<slug>/page-map.md` (see "Chapter page map" in "Working with the PDF"). This is a one-time cost per book; future sessions read the file directly.
-4. Create placeholder chapter files for chapters 2..N so the navigation works from day one.
+1. Confirm the notes destination folder and the book slug (one quick question if not obvious — don't ask four).
+2. Inspect the folder. If empty, scaffold a **multi-book project** (`zensical.toml`, `docs/index.md` as hub, `docs/books/<slug>/`, `docs/topics/index.md`, `docs/reference/`). Templates in `references/scaffold.md`.
+3. **Build the chapter page map** — extract chapter boundaries in one pass and save to `docs/books/<slug>/page-map.md` (see "Chapter page map" above). One-time cost; every future session reads this file directly.
+4. Create placeholder files for chapters 2..N under `docs/books/<slug>/chapters/` so the navigation works from day one.
 5. **Check the chapter text cache** — look for `docs/books/<slug>/pdf-cache/01-<slug>.txt`. If absent, extract and save: `pdftotext -f <start> -l <end> -layout "<book>.pdf" docs/books/<slug>/pdf-cache/01-<slug>.txt`. Then read from the file.
-6. Detect version-bound content. Web-search for any current versions discussed.
-7. Write the chapter outline using the style in `references/note-style.md`. Insert the version-adaptation note callout if any updates were made.
-8. Update `zensical.toml` nav (if needed), reading log, `docs/reference/glossary.md` (new terms), `docs/reference/resources.md` (links).
-9. Tell the user how to run the site (`docker compose up` or `zensical serve` — README in the project explains both) and ask whether to continue with chapter 2 next.
-
-If the project is already in multi-book mode, step 2 is "read `references/multi-book.md`," step 7 also writes/extends a topic page when ≥2 books overlap, and step 8 also updates the topic index and adds the bidirectional cross-links.
+6. Detect version-bound content. **Check `docs/research-cache/` first** — if a relevant cache file exists and is current, use it. Otherwise web-search and save the results to a new cache file before continuing.
+7. Write the chapter outline to `docs/books/<slug>/chapters/01-<slug>.md` using the style in `references/note-style.md`. Insert the version-adaptation callout if any updates were made.
+8. Do the topic-page pass: identify which topics chapter 1 touches and add them to the `docs/topics/index.md` backlog (don't write topic pages yet — wait for a second book to overlap).
+9. Update `zensical.toml` nav (if needed), `docs/books/<slug>/index.md` reading log (flip ✅), `docs/reference/glossary.md` (new terms with source), `docs/reference/resources.md` (links).
+10. Tell the user how to run the site (`docker compose up` or `zensical serve` — README explains both) and ask whether to continue with chapter 2 next.
 
 ## Anti-patterns to avoid
 
+- **Don't scaffold a single-book layout for a new project.** Always start with multi-book — the extra folders cost nothing and avoid a painful migration later.
 - **Don't re-run pdftotext if the cache exists.** Check `docs/books/<slug>/pdf-cache/<NN>-<slug>.txt` before extracting. A cache hit skips the extraction entirely and keeps the context window smaller.
+- **Don't re-run web searches if results are cached.** Check `docs/research-cache/` before searching. If a cache file exists and its "Last verified" date is current, use it directly and skip the search.
 - **Don't dump raw extracted text.** It's not notes; it's a copy. Re-state ideas in your own words.
 - **Don't write a flat summary** of long chapters — keep the structure visible.
 - **Don't rewrite chapters from scratch** when the book is just slightly out of date. Adapt the version-bound bits, leave concepts alone.
 - **Don't quietly skip the reading-log update.** Future-you will lose track of what's done.
 - **Don't pin versions unless asked.** A user studying technology generally wants notes against *current*, not whatever happened to be latest the day they ran the skill — but that's a soft preference. If they ask for "as of when the book was written," respect it.
 - **Don't pretend to know latest versions from training.** Always web-search when version-currency matters.
-- **(multi-book) Don't write topic pages with only one source.** Keep them in the backlog until a second book provides the comparison point — otherwise the topic page is just a chapter summary in disguise.
+- **Don't write topic pages with only one source.** Keep them in the backlog until a second book provides the comparison point — otherwise the topic page is just a chapter summary in disguise.
+- **Don't forget the cross-links.** Topic pages without back-links to source chapters are orphaned; chapter notes without forward-links to topic pages are siloed. Bidirectional links are what make the hybrid useful.
 
 ## Reference files
 
 Read these on demand. Each one stands alone.
 
 - `references/note-style.md` — full style guide for chapter outlines, with an annotated example. Read once per session at minimum.
-- `references/scaffold.md` — drop-in templates for `zensical.toml`, `docs/index.md`, glossary, resources, README, and Dockerfile/compose. Read when scaffolding a new single-book project.
+- `references/scaffold.md` — drop-in templates for the multi-book project (`zensical.toml`, `docs/index.md` hub, per-book reading log, topics index, glossary, resources, README, Dockerfile/compose). Also includes the lightweight single-book templates for reference. Read when bootstrapping a fresh project.
 - `references/version-handling.md` — decision rules for adapting a book's version-specific content to current reality, with a worked PostgreSQL 16 → 18 example. Read when the chapter mentions any version, release, or install command.
-- `references/multi-book.md` — the hybrid per-book + topic-page layout: when to use it, how to migrate from single-book, the topic-page template, the cross-linking convention, and glossary handling across books. Read whenever `docs/books/` exists, or whenever the user is adding a second book to an existing site.
+- `references/multi-book.md` — the hybrid per-book + topic-page layout: full workflow, topic-page template, cross-linking convention, glossary handling across books, and migration steps from single-book. Read at the start of every multi-book session.
