@@ -44,6 +44,14 @@ nav = [
     ]},
 ]
 
+# Math rendering — include MathJax if the notes contain equations.
+# arithmatex (which processes $...$ and $$...$$) is built into Zensical's
+# defaults; you just need the JavaScript to actually render it in the browser.
+extra_javascript = [
+    "javascripts/mathjax.js",
+    {path = "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js", defer = true},
+]
+
 # NOTE: [project.theme] is intentionally omitted. Zensical 0.0.x ships only its
 # default theme by name; setting name = "modern" or "classic" causes a
 # "Theme '<x>' is not installed" error in current releases. Once Zensical 0.1+
@@ -53,6 +61,8 @@ nav = [
 #   name = "modern"
 #   language = "en"
 ```
+
+If the book has no math, omit `extra_javascript` entirely (no cost to leaving it in though).
 
 For books with many chapters, group them into parts using nested arrays — but only if the book itself is structured that way:
 
@@ -234,6 +244,27 @@ zensical serve
 
 ---
 
+## `serve.py`
+
+`zensical serve` uses watchdog/inotify for file watching, which does not receive events from Docker volume mounts on Windows (Docker Desktop + WSL2). Use `livereload` instead — it polls the filesystem and works on all platforms.
+
+```python
+import subprocess
+from livereload import Server
+
+
+def build():
+    subprocess.run(["zensical", "build"], check=True)
+
+
+build()  # initial build on startup
+
+server = Server()
+server.watch("docs/", build)
+server.watch("zensical.toml", build)
+server.serve(root="site", port=8000, host="0.0.0.0")
+```
+
 ## `Dockerfile`
 
 ```dockerfile
@@ -246,10 +277,12 @@ WORKDIR /app
 
 # Zensical is pre-1.0 (0.0.x); pin under 0.1 to avoid surprises if a 0.1
 # breaking release lands.
-RUN pip install --no-cache-dir "zensical>=0.0.30,<0.1"
+RUN pip install --no-cache-dir "zensical>=0.0.30,<0.1" livereload
+
+COPY serve.py /app/serve.py
 
 EXPOSE 8000
-CMD ["zensical", "serve", "--dev-addr", "0.0.0.0:8000"]
+CMD ["python", "serve.py"]
 ```
 
 ## `docker-compose.yml`
@@ -267,6 +300,12 @@ services:
       - ./zensical.toml:/app/zensical.toml
       - ./docs:/app/docs
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:8000', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 ```
 
 ## `.dockerignore`

@@ -9,7 +9,10 @@ You upload a PDF (a technical book, paper, manual), say *"let's do chapter 3"*, 
 - **Detailed-outline notes** — hierarchical, navigable, written in your own words. Not a summary, not a quote dump — something you'll actually come back to.
 - **Multi-book hybrid layout** — per-book chapter notes plus cross-book topic pages. Start with one book; add a second and the structure is already ready.
 - **Version-aware** — detects version-bound content (install commands, "what's new" sections, EOL dates) and updates it to the current release via a web search at note-taking time.
-- **Chapter page map** — on first use, extracts all chapter boundaries from the PDF in one pass and saves them. Every future session reads the map instead of re-scanning the PDF.
+- **Chapter page map** — on first use, extracts all chapter boundaries from the PDF in one pass and saves them to `page-map.md`. Every future session reads the map instead of re-scanning the PDF.
+- **Chapter text cache** — extracted chapter text is saved to `pdf-cache/` on first extraction; subsequent sessions read from the cache and skip `pdftotext` entirely.
+- **Research cache** — web search results (version lookups, API facts) are saved to `docs/research-cache/` with a "Last verified" date so future sessions skip redundant searches.
+- **Math support** — configures `pymdownx.arithmatex` + MathJax so `$...$` and `$$...$$` render in the browser. Scaffold templates include the JS config file and `extra_javascript` wiring.
 - **Site sync** — after each chapter, automatically updates the reading log, glossary, resources list, and topic index.
 - **Hot reload on Docker Desktop for Windows** — includes a `livereload`-based `serve.py` workaround for the inotify/WSL2 limitation that prevents `zensical serve` from detecting file changes on Windows.
 
@@ -79,12 +82,19 @@ Claude Code will invoke the skill automatically. You can also invoke it explicit
 │   │   └── <slug>/
 │   │       ├── index.md       # reading log
 │   │       ├── page-map.md    # PDF page ranges (extracted once, reused every session)
+│   │       ├── pdf-cache/     # raw extracted chapter text (reused across sessions)
+│   │       │   ├── 01-<slug>.txt
+│   │       │   └── …
 │   │       └── chapters/
 │   │           ├── 01-<slug>.md
 │   │           └── …
-│   └── reference/
-│       ├── glossary.md
-│       └── resources.md
+│   ├── reference/
+│   │   ├── glossary.md
+│   │   └── resources.md
+│   └── research-cache/        # verified version/API facts (not wired into nav)
+├── docs/javascripts/
+│   └── mathjax.js             # MathJax config (only present if notes contain equations)
+├── serve.py                   # livereload-based dev server for Docker on Windows
 ├── Dockerfile
 ├── docker-compose.yml
 └── README.md
@@ -97,7 +107,7 @@ The skill includes four reference documents read on demand:
 | File | Purpose |
 | --- | --- |
 | `references/note-style.md` | Full style guide for chapter outlines, with an annotated example |
-| `references/scaffold.md` | Drop-in templates for `zensical.toml`, index pages, glossary, Dockerfile, etc. |
+| `references/scaffold.md` | Drop-in templates for `zensical.toml`, index pages, glossary, `serve.py`, Dockerfile, etc. |
 | `references/version-handling.md` | Rules for adapting version-specific book content to the current release |
 | `references/multi-book.md` | Multi-book hybrid layout: migration steps, topic-page workflow, cross-linking |
 

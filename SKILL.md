@@ -277,6 +277,24 @@ Zensical is pre-1.0 (0.0.x as of writing). Two practical consequences:
 
 Once Zensical hits 0.1+ this section can be revisited.
 
+## Math support
+
+Zensical ships with the `pymdownx.arithmatex` extension enabled by default. It processes `$...$` (inline) and `$$...$$` (display) delimiters in Markdown and outputs `<span class="arithmatex">\(...\)</span>` / `\[...\]` HTML. That's only half the pipeline — the browser still needs MathJax to render it.
+
+To enable math rendering, two things must be in place:
+
+1. **`docs/javascripts/mathjax.js`** — configures MathJax before the CDN script loads. The template is in `references/scaffold.md`.
+2. **`extra_javascript` in `zensical.toml`** — loads both the local config file and the MathJax CDN script. The template is in `references/scaffold.md`.
+
+If the chapter has no equations, omit both. If you add them but the Docker container is already running, restart it (`docker compose restart`) so the new JS file is picked up.
+
+**Syntax to use in notes:**
+
+- Inline: `$\omega_{ij} = x^{(i)} \cdot x^{(j)}$`
+- Display: `$$\alpha_{ij} = \frac{\exp(\omega_{ij})}{\sum_k \exp(\omega_{ik})}$$`
+
+`arithmatex` converts these to MathJax-compatible delimiters (`\(...\)` / `\[...\]`), so the `$` form is the right form to write in Markdown — don't write `\(...\)` by hand.
+
 ## A complete worked example
 
 The user uploads a 745-page PDF of a Linux kernel internals book and says *"help me take notes on this, let's start with chapter 1."*
